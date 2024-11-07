@@ -167,12 +167,12 @@ app.post('/reportes/:id', async (req, res) => {
   }
 });
 
-// Endpoint para guardar los datos de la calle
+// Endpoint para cargar los datos de la calle
 app.get('/tramo/:id', async (req, res) => {
   const streetId = req.params.id;
 
   // Query para actualizar la calle en la base de datos
-  const query = 'SELECT PRIORIDAD AS prioridad FROM TRAMO WHERE id = ?';
+  const query = 'SELECT PRIORIDAD AS prioridad FROM TRAMO WHERE id_tramo = ?';
   try{
     const [row]  = await promisePool.query(query, [streetId])
 
@@ -186,6 +186,46 @@ app.get('/tramo/:id', async (req, res) => {
     res.status(500).json({ error: 'Error al guardar los datos' });
   }
 });
+
+// Endpoint para RECOGER los datos del garaje
+app.get('/garaje/:id', async (req, res) => {
+  const garajeId = req.params.id;
+
+  // Query para actualizar la calle en la base de datos
+  const query = 'SELECT ID as id, ID_USUARIO AS id_usuario, FECHA AS fecha, CODIGO as codigo, ESTADO as estado, COMENTARIO as comentario FROM GARAJE WHERE id = ? ORDER BY FECHA DESC LIMIT 1';
+  try{
+    const [row]  = await promisePool.query(query, [garajeId])
+
+    if(row.length > 0){
+      res.status(200).json( row[0] );
+    } else {
+      res.status(403).json( {error: "No se ha encontrado el garaje"} );
+    }
+  }catch (err) {
+    console.error('Error al realizar la consulta:', err);
+    res.status(500).json({ error: 'Error al realizar la consulta' });
+  }
+});
+
+// Endpoint para guardar los datos de la calle
+app.post('/garaje', async (req, res) => {
+  const { idUsuario, codigo, estado, comentario } = req.body;
+
+  // Query para actualizar la calle en la base de datos
+  const query = 'INSERT INTO garaje(ID_USUARIO, CODIGO, ESTADO, COMENTARIO) VALUES ( ?, ?, ?, ?)';
+  try{
+    const [result] = await promisePool.query(query, [idUsuario, codigo, estado, comentario])
+
+    const insertId = result.insertId;
+    const [row] = await promisePool.query('SELECT * FROM garaje WHERE id = ?', [insertId]);
+
+    res.status(200).json({ message: 'Estado del garaje guardado exitosamente', row });
+  }catch (err) {
+    console.error('Error al insertar los datos:', err);
+    res.status(500).json({ error: 'Error al guardar los datos' });
+  }
+});
+
 
 // Endpoint para actualizar los datos de la calle
 app.put('/update-street/:id', async (req, res) => {
