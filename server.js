@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simulación de base de datos (puedes usar una base de datos real, como MongoDB, MySQL, etc.)
+
 const pool = mysql.createPool({
   host: 'localhost',         // Dirección del servidor de la base de datos
   user: 'root',              // Usuario de la base de datos
@@ -65,26 +65,35 @@ const upload = multer({
   }
 });
 
-
-// Recupera todos los datos de las calles con incidencias
-app.get('/get-all-street-colors', async (req, res) => {
+// Recupera las prioridades de las calles
+app.get('/prioridades', async (req, res) => {
 
     try {
-      const [rows] = await promisePool.query('SELECT * FROM tramo');
-      const result = rows.reduce((acc, row) => {
-        const { ID_TRAMO, ...columns } = row; // Desestructurar la fila para obtener las columnas
-        acc[ID_TRAMO] = columns; // Agregar al diccionario
-        return acc;
-      }, {});
-      res.status(200).json(result);
+      const [rows] = await promisePool.query('SELECT ID as id, ID_TRAMO as id_tramo, PRIORIDAD as prioridad FROM tramo');
+      
+      res.status(200).json(rows);
     } catch (err) {
       console.error('Error al ejecutar la consulta:', err);
       res.status(500).json({ message: 'Error en la consulta' });
     }
   });
 
-  //ENDPOINT para registrar a un usuario
-  app.post('/register', async (req, res) => {
+// Recupera los comentarios de una calle
+app.get('/comentarios/:id', async (req, res) => {
+
+  try {
+    const streetId = req.params.id;
+    const [rows] = await promisePool.query('SELECT comentario as comentario FROM reportes WHERE ID_TRAMO = ?', [streetId]);
+    
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error('Error al ejecutar la consulta:', err);
+    res.status(500).json({ message: 'Error en la consulta' });
+  }
+});
+
+//ENDPOINT para registrar a un usuario
+app.post('/register', async (req, res) => {
 
     try {
       const { usuario, pass, email } = req.body;
@@ -133,19 +142,19 @@ app.get('/get-all-street-colors', async (req, res) => {
   });
 
 // Endpoint para guardar los datos de la calle
-app.post('/post-street/:id', async (req, res) => {
+app.post('/reportes/:id', async (req, res) => {
   const streetId = req.params.id;
-  const { nombre, comentario, transitable, coches, escombros, idUsuario } = req.body;
+  const { nombre, comentario, transitable, coches, escombros, idUsuario, prioridad } = req.body;
 
   // Query para actualizar la calle en la base de datos
-  const query = 'INSERT INTO tramo(NOMBRE, COMENTARIO, TRANSITABLE, COCHES, ESCOMBROS, ID_TRAMO, ID_USUARIO) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  const query = 'INSERT INTO reportes(NOMBRE, COMENTARIO, TRANSITABLE, COCHES, ESCOMBROS, ID_TRAMO, ID_USUARIO, PRIORIDAD, FECHA) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE())';
   try{
-    const [result] = await promisePool.query(query, [nombre, comentario, transitable, coches, escombros, streetId, idUsuario])
+    const [result] = await promisePool.query(query, [nombre, comentario, transitable, coches, escombros, streetId, idUsuario, prioridad])
 
     const insertId = result.insertId;
-    const [row] = await promisePool.query('SELECT * FROM tramo WHERE id = ?', [insertId]);
+    const [row] = await promisePool.query('SELECT * FROM reportes WHERE id = ?', [insertId]);
 
-    res.status(200).json({ message: 'Calle agregada exitosamente', row });
+    res.status(200).json({ message: 'Reporte guardado exitosamente', row });
   }catch (err) {
     console.error('Error al insertar los datos:', err);
     res.status(500).json({ error: 'Error al guardar los datos' });
