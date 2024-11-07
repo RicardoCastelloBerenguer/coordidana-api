@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  mariadb:
+    image: mariadb:latest  # Usa la imagen oficial de MariaDB
+    container_name: mariadb-container
+    ports:
+      - "3306:3306"  # Expone el puerto 3306
+    environment:
+      MYSQL_ROOT_PASSWORD: bbddleporido
+      MYSQL_DATABASE: coordidana
+      MYSQL_USER: userdb
+      MYSQL_PASSWORD: bbddsuperman
+    volumes:
+      - mariadb_data:/var/lib/mysql  # Volumen para persistencia de datos
+      - ./coordidanabbdd.sql:/docker-entrypoint-initdb.d/init-database.sql  # Script de inicialización opcional
+
+volumes:
+  mariadb_data:
+
