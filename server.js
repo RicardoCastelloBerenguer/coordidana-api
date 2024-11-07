@@ -70,8 +70,14 @@ app.get('/prioridades', async (req, res) => {
 
     try {
       const [rows] = await promisePool.query('SELECT ID as id, ID_TRAMO as id_tramo, PRIORIDAD as prioridad FROM tramo');
+
+      const result = rows.reduce((acc, row) => {
+        const { id_tramo, ...columns } = row; // Desestructurar la fila para obtener las columnas
+        acc[id_tramo] = columns; // Agregar al diccionario
+        return acc;
+      }, {});
       
-      res.status(200).json(rows);
+      res.status(200).json(result);
     } catch (err) {
       console.error('Error al ejecutar la consulta:', err);
       res.status(500).json({ message: 'Error en la consulta' });
@@ -154,7 +160,7 @@ app.post('/reportes/:id', async (req, res) => {
     const insertId = result.insertId;
     const [row] = await promisePool.query('SELECT * FROM reportes WHERE id = ?', [insertId]);
 
-    res.status(200).json({ message: 'Reporte guardado exitosamente', row });
+    res.status(200).json({ message: 'Reporte exitosamente', row });
   }catch (err) {
     console.error('Error al insertar los datos:', err);
     res.status(500).json({ error: 'Error al guardar los datos' });
