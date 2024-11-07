@@ -167,6 +167,26 @@ app.post('/reportes/:id', async (req, res) => {
   }
 });
 
+// Endpoint para guardar los datos de la calle
+app.get('/tramo/:id', async (req, res) => {
+  const streetId = req.params.id;
+
+  // Query para actualizar la calle en la base de datos
+  const query = 'SELECT PRIORIDAD AS prioridad FROM TRAMO WHERE id = ?';
+  try{
+    const [row]  = await promisePool.query(query, [streetId])
+
+    if(row.length > 0){
+      res.status(200).json( row[0] );
+    } else {
+      res.status(403).json( {error: "No se ha encontrado el tramo"} );
+    }
+  }catch (err) {
+    console.error('Error al insertar los datos:', err);
+    res.status(500).json({ error: 'Error al guardar los datos' });
+  }
+});
+
 // Endpoint para actualizar los datos de la calle
 app.put('/update-street/:id', async (req, res) => {
   const streetId = req.params.id;
