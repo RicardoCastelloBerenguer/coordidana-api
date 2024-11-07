@@ -6,8 +6,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mysql = require('mysql2');
-const bodyParser = require('body-parser');
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Simulación de base de datos (puedes usar una base de datos real, como MongoDB, MySQL, etc.)
 const pool = mysql.createPool({
@@ -65,9 +66,8 @@ const upload = multer({
 });
 
 
-// API para obtener el color de una calle
+// Recupera todos los datos de las calles con incidencias
 app.get('/get-all-street-colors', async (req, res) => {
-    //res.json(streetsData);  // Devuelve todos los colores de las calles en un solo objeto
 
     try {
       const [rows] = await promisePool.query('SELECT * FROM tramo');
@@ -83,18 +83,64 @@ app.get('/get-all-street-colors', async (req, res) => {
     }
   });
 
+  //ENDPOINT para registrar a un usuario
+  app.post('/register', async (req, res) => {
 
-  app.use(bodyParser.json());
+    try {
+      const { usuario, pass, email } = req.body;
 
-// Endpoint para actualizar los datos de la calle
+      const queryEmail = 'SELECT COUNT(1) as existe FROM usuario WHERE email = ?';
+      
+      const [resultEmail] = await promisePool.query(queryEmail, [email])
+      
+      const queryUsu = 'SELECT COUNT(1) as existe FROM usuario WHERE usuario = ?';
+      
+      const [resultUsu] = await promisePool.query(queryUsu, [usuario])
+      if(resultEmail != undefined && resultEmail[0].existe != 0){
+
+        res.status(401).json({ message: 'Email ya registrado'});
+      } else if(resultUsu != undefined && resultUsu[0].existe != 0){
+
+        res.status(401).json({ message: 'Nombre de usuario ya registrado'});
+      }else {
+        const query = 'INSERT INTO usuario(USUARIO, PASS, EMAIL) VALUES (?, ?, ?)';
+        const [result] = await promisePool.query(query, [usuario, pass, email])
+        res.status(200).json({ message: 'Registro completado correctamente'});
+      }
+    } catch (err) {
+      console.error('Error al ejecutar la consulta:', err);
+      res.status(500).json({ message: 'Error en la consulta' });
+    }
+  });
+
+  app.get('/login', async (req, res) => {
+
+    try {
+      const { usuario, pass } = req.body;
+
+      const query = 'SELECT ID as id FROM usuario WHERE (usuario = ? OR email = ?) and pass = ?';
+      const [result] = await promisePool.query(query, [usuario, usuario, pass])
+      if(result != undefined && result[0].id != undefined){
+
+        res.status(200).json({ message: 'Login completado', usuario: result[0].id});
+      } else {
+        res.status(401).json({ message: 'Credenciales incorrectas'});
+      }
+    } catch (err) {
+      console.error('Error al ejecutar la consulta:', err);
+      res.status(500).json({ message: 'Error en la consulta' });
+    }
+  });
+
+// Endpoint para guardar los datos de la calle
 app.post('/post-street/:id', async (req, res) => {
   const streetId = req.params.id;
-  const { nombre, comentario, transitable, coches, escombros } = req.body;
+  const { nombre, comentario, transitable, coches, escombros, idUsuario } = req.body;
 
   // Query para actualizar la calle en la base de datos
-  const query = 'INSERT INTO tramo(NOMBRE, COMENTARIO, TRANSITABLE, COCHES, ESCOMBROS, ID_TRAMO) VALUES (?, ?, ?, ?, ?, ?)';
+  const query = 'INSERT INTO tramo(NOMBRE, COMENTARIO, TRANSITABLE, COCHES, ESCOMBROS, ID_TRAMO, ID_USUARIO) VALUES (?, ?, ?, ?, ?, ?, ?)';
   try{
-    const [result] = await promisePool.query(query, [nombre, comentario, transitable, coches, escombros, streetId])
+    const [result] = await promisePool.query(query, [nombre, comentario, transitable, coches, escombros, streetId, idUsuario])
 
     const insertId = result.insertId;
     const [row] = await promisePool.query('SELECT * FROM tramo WHERE id = ?', [insertId]);
@@ -106,14 +152,15 @@ app.post('/post-street/:id', async (req, res) => {
   }
 });
 
+// Endpoint para actualizar los datos de la calle
 app.put('/update-street/:id', async (req, res) => {
   const streetId = req.params.id;
-  const { nombre, comentario, transitable, coches, escombros } = req.body;
+  const { nombre, comentario, transitable, coches, escombros, idUsuario } = req.body;
 
   // Query para actualizar la calle en la base de datos
-  const query = 'UPDATE tramo SET NOMBRE = ?, COMENTARIO = ?, TRANSITABLE = ?, COCHES = ?, ESCOMBROS = ? WHERE ID = ?';
+  const query = 'UPDATE tramo SET NOMBRE = ?, COMENTARIO = ?, TRANSITABLE = ?, COCHES = ?, ESCOMBROS = ?, ID_USUARIO = ? WHERE ID = ?';
   try{
-    const [result] = await promisePool.query(query, [nombre, comentario, transitable, coches, escombros, streetId])
+    const [result] = await promisePool.query(query, [nombre, comentario, transitable, coches, escombros, idUsuario, streetId])
     
     const [row] = await promisePool.query('SELECT * FROM tramo WHERE id = ?', [streetId]);
 
@@ -124,17 +171,19 @@ app.put('/update-street/:id', async (req, res) => {
   }
 });
 
+//endpoint para actalizar una foto
   app.post('/upload-photo/:streetId', upload.single('photo'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No se ha subido ninguna imagen' });
     }
   
     // Construir la URL de la foto subida
-    const photoUrl = `/uploads/${req.params.streetId}/${new Date().toISOString().split('T')[0]}/${req.file.filename}`;
+    const photoUrl = `/uploads/${req.params.streetId}/${req.file.filename}`;
     res.json({ message: 'Foto subida con éxito', photoUrl: photoUrl });
   });
   
 
+  //endpoint para recuperar las fotos de una calle
   app.get('/photos/:streetId', (req, res) => {
     const streetId = req.params.streetId;
     const dirPath = path.join(__dirname, 'uploads', streetId);
@@ -153,7 +202,7 @@ app.put('/update-street/:id', async (req, res) => {
   
     res.json(photoUrls); // Devolver todas las URLs de fotos encontradas
   });
-  
+
   // Hacer que los archivos estáticos sean accesibles
   app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
