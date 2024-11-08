@@ -207,6 +207,31 @@ app.get('/garaje/:id', async (req, res) => {
   }
 });
 
+// Endpoint para RECOGER los datos del garaje
+app.get('/colores-garajes', async (req, res) => {
+  const garajeId = req.params.id;
+
+  // Query para actualizar la calle en la base de datos
+  const query = 'SELECT t1.id, t1.codigo, t1.estado, t1.fecha FROM garaje t1 JOIN ( SELECT codigo, MAX(fecha) AS max_fecha FROM garaje  GROUP BY codigo ) t2 ON t1.codigo = t2.codigo AND t1.fecha = t2.max_fecha';
+  try{
+    const [rows]  = await promisePool.query(query)
+
+    const result = rows.reduce((acc, row) => {
+      const { codigo, ...columns } = row; // Desestructurar la fila para obtener las columnas
+      acc[codigo] = columns; // Agregar al diccionario
+      return acc;
+    }, {});
+    if(rows.length > 0){
+      res.status(200).json( result );
+    } else {
+      res.status(200).json( {mensaje: "No se han encontrado datos de garajes"} );
+    }
+  }catch (err) {
+    console.error('Error al realizar la consulta:', err);
+    res.status(500).json({ error: 'Error al realizar la consulta' });
+  }
+});
+
 // Endpoint para guardar los datos de la calle
 app.post('/garaje', async (req, res) => {
   const { idUsuario, codigo, estado, comentario } = req.body;
