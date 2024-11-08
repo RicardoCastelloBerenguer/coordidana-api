@@ -135,7 +135,8 @@ app.post('/register', async (req, res) => {
 
       const query = 'SELECT ID as id FROM usuario WHERE (usuario = ? OR email = ?) and pass = ?';
       const [result] = await promisePool.query(query, [usuario, usuario, pass])
-      if(result != undefined && result[0].id != undefined){
+      console.log(result)
+      if(result.length != 0 && result[0].id != undefined){
 
         res.status(200).json({ message: 'Login completado', usuario: result[0].id});
       } else {
