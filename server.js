@@ -192,14 +192,14 @@ app.get('/garaje/:id', async (req, res) => {
   const garajeId = req.params.id;
 
   // Query para actualizar la calle en la base de datos
-  const query = 'SELECT ID as id, ID_USUARIO AS id_usuario, FECHA AS fecha, CODIGO as codigo, ESTADO as estado, COMENTARIO as comentario FROM GARAJE WHERE id = ? ORDER BY FECHA DESC LIMIT 1';
+  const query = 'SELECT ID as id, ID_USUARIO AS id_usuario, FECHA AS fecha, CODIGO as codigo, ESTADO as estado, COMENTARIO as comentario FROM GARAJE WHERE codigo = ? ORDER BY FECHA DESC LIMIT 1';
   try{
     const [row]  = await promisePool.query(query, [garajeId])
 
     if(row.length > 0){
       res.status(200).json( row[0] );
     } else {
-      res.status(403).json( {error: "No se ha encontrado el garaje"} );
+      res.status(200).json( {mensaje: "No se ha encontrado el garaje"} );
     }
   }catch (err) {
     console.error('Error al realizar la consulta:', err);
