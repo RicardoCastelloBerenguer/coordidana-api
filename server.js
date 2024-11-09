@@ -1,15 +1,25 @@
 const express = require('express');
 const app = express();
 const port = 4000;
-const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mysql = require('mysql2');
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://www.coordidana.com'); // O usa '*' para permitir todos los orígenes
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+      return res.sendStatus(204); // Responde a las solicitudes preflight
+  }
+
+  next();
+});
 
 const pool = mysql.createPool({
   host: 'localhost',         // Dirección del servidor de la base de datos
