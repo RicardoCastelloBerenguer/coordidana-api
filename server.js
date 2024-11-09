@@ -1,24 +1,26 @@
 const express = require('express');
 const app = express();
 const port = 4000;
+const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const mysql = require('mysql2');
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://www.coordidana.com'); // O usa '*' para permitir todos los orígenes
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Origin', '*'); // O usa '*' para permitir todos los orígenes
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-      return res.sendStatus(204); // Responde a las solicitudes preflight
-  }
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204); // Responde a las solicitudes preflight
+    }
 
-  next();
+    next();
 });
 
 const pool = mysql.createPool({
@@ -26,7 +28,7 @@ const pool = mysql.createPool({
   user: 'root',              // Usuario de la base de datos
   password: 'root', // Contraseña de la base de datos
   database: 'coordidana', // Nombre de la base de datos
-  port: 3307                 // Puerto del servidor MariaDB (por defecto es 3306)
+  port: 3306                 // Puerto del servidor MariaDB (por defecto es 3306)
 });
 
 const promisePool = pool.promise();
@@ -182,8 +184,8 @@ app.post('/reportes/:id', async (req, res) => {
 app.get('/tramo/:id', async (req, res) => {
   const streetId = req.params.id;
 
-  // Query para actualizar la calle en la base de datos
-  const query = 'SELECT PRIORIDAD AS prioridad FROM TRAMO WHERE id_tramo = ?';
+  // Query para actualizar la calle en la base de datosº
+  const query = 'SELECT PRIORIDAD AS prioridad from tramo WHERE id_tramo = ?';
   try{
     const [row]  = await promisePool.query(query, [streetId])
 
@@ -203,7 +205,7 @@ app.get('/garaje/:id', async (req, res) => {
   const garajeId = req.params.id;
 
   // Query para actualizar la calle en la base de datos
-  const query = 'SELECT ID as id, ID_USUARIO AS id_usuario, FECHA AS fecha, CODIGO as codigo, ESTADO as estado, COMENTARIO as comentario FROM GARAJE WHERE codigo = ? ORDER BY FECHA DESC LIMIT 1';
+  const query = 'SELECT ID as id, ID_USUARIO AS id_usuario, FECHA AS fecha, CODIGO as codigo, ESTADO as estado, COMENTARIO as comentario FROM garaje WHERE codigo = ? ORDER BY FECHA DESC LIMIT 1';
   try{
     const [row]  = await promisePool.query(query, [garajeId])
 
